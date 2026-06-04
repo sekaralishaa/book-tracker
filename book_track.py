@@ -1,5 +1,6 @@
 import streamlit as st
 import time
+from streamlit_autorefresh import st_autorefresh
 
 st.set_page_config(
     page_title="Let's Read",
@@ -23,168 +24,196 @@ if "show_summary" not in st.session_state:
 if "saved_pages" not in st.session_state:
     st.session_state.saved_pages = 0
 
-if "saved_pace" not in st.session_state:
-    st.session_state.saved_pace = 0
+if "saved_pace_seconds" not in st.session_state:
+    st.session_state.saved_pace_seconds = 0
+
+
+# ---------------- AUTO REFRESH ----------------
+# Ini yang bikin timer kelihatan jalan setiap 1 detik
+if st.session_state.running:
+    st_autorefresh(interval=1000, key="timer_refresh")
 
 
 # ---------------- STYLING ----------------
 st.markdown("""
 <style>
 
-.stApp{
-    background-color:#626BC5;
+.stApp {
+    background-color: #626BC5;
 }
 
-html, body, [class*="css"]{
-    font-family: 'Arial';
-    color:#F7EEDF;
+.block-container {
+    padding-top: 1.2rem;
+    max-width: 900px;
 }
 
-.block-container{
-    padding-top:2rem;
+html, body, [class*="css"] {
+    font-family: Arial, sans-serif;
+    color: #F7EEDF;
 }
 
-.title{
-    text-align:center;
-    font-size:58px;
-    font-weight:700;
-    color:#F7EEDF;
-    margin-bottom:40px;
+.title {
+    text-align: center;
+    font-size: 58px;
+    font-weight: 800;
+    color: #F7EEDF;
+    margin-bottom: 55px;
 }
 
-.timer-circle{
-    width:320px;
-    height:320px;
-    border:5px solid #F7EEDF;
-    border-radius:50%;
-    margin:auto;
+.timer-circle {
+    width: 330px;
+    height: 330px;
+    border: 6px solid #F7EEDF;
+    border-radius: 50%;
+    margin: auto;
 
-    display:flex;
-    justify-content:center;
-    align-items:center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 
-    font-size:72px;
-    font-weight:700;
-    color:#F7EEDF;
+    font-size: 72px;
+    font-weight: 800;
+    color: #F7EEDF;
 }
 
-.summary-title{
-    text-align:center;
-    font-size:32px;
-    margin-top:30px;
-    color:#F7EEDF;
+.button-wrapper {
+    margin-top: 55px;
 }
 
-.summary-value{
-    text-align:center;
-    font-size:72px;
-    font-weight:700;
-    margin-bottom:30px;
-    color:#F7EEDF;
+div.stButton > button {
+    border-radius: 999px;
+    height: 58px;
+    font-size: 22px;
+    font-weight: 700;
+    border: none;
+    background: linear-gradient(90deg, #D8DAF7, #FFFFFF);
+    color: #1F2A8A;
 }
 
-.book{
-    text-align:center;
-    font-size:180px;
+div.stButton > button:hover {
+    background: linear-gradient(90deg, #FFFFFF, #E8E9FF);
+    color: #1F2A8A;
 }
 
-div.stButton > button{
-    border-radius:999px;
-    height:55px;
-    font-size:22px;
-    font-weight:700;
-    border:none;
-    background:linear-gradient(90deg,#B9BCE8,#F1F1F1);
-    color:#27348B;
+.stNumberInput label {
+    color: #F7EEDF !important;
+    font-size: 20px !important;
+    font-weight: 700 !important;
 }
 
-div.stButton > button:hover{
-    background:linear-gradient(90deg,#D7D9F6,#FFFFFF);
-    color:#27348B;
+div[data-baseweb="input"] {
+    border-radius: 999px;
 }
 
-.stNumberInput label{
-    color:#F7EEDF !important;
-    font-size:20px !important;
+.summary-label {
+    text-align: center;
+    font-size: 30px;
+    color: #F7EEDF;
+    font-weight: 500;
+    margin-top: 18px;
+}
+
+.summary-value {
+    text-align: center;
+    font-size: 72px;
+    color: #F7EEDF;
+    font-weight: 800;
+    margin-bottom: 24px;
+}
+
+.book {
+    text-align: center;
+    font-size: 170px;
+    margin-top: 10px;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
 
+# ---------------- HELPER ----------------
+def format_timer(seconds):
+    minutes = seconds // 60
+    remaining_seconds = seconds % 60
+    return f"{minutes:02}:{remaining_seconds:02}"
+
+
+def format_time_summary(seconds):
+    minutes = seconds // 60
+    remaining_seconds = seconds % 60
+
+    if minutes > 0:
+        return f"{minutes} m {remaining_seconds} s"
+    return f"{remaining_seconds} s"
+
+
+def format_pace(seconds_per_page):
+    seconds_per_page = int(round(seconds_per_page))
+    minutes = seconds_per_page // 60
+    seconds = seconds_per_page % 60
+
+    if minutes > 0:
+        return f"{minutes}'{seconds:02}'' / page"
+    return f"{seconds}'' / page"
+
+
 # ---------------- TIMER PAGE ----------------
 if not st.session_state.show_summary:
 
-    st.markdown(
-        "<div class='title'>Let's read</div>",
-        unsafe_allow_html=True
-    )
-
-    elapsed = st.session_state.elapsed
+    st.markdown("<div class='title'>Let's read</div>", unsafe_allow_html=True)
 
     if st.session_state.running:
-        elapsed = int(time.time() - st.session_state.start_time)
-        st.session_state.elapsed = elapsed
-        st.rerun()
+        st.session_state.elapsed = int(time.time() - st.session_state.start_time)
 
-    minutes = elapsed // 60
-    seconds = elapsed % 60
+    elapsed = st.session_state.elapsed
 
     st.markdown(
         f"""
         <div class="timer-circle">
-            {minutes:02}:{seconds:02}
+            {format_timer(elapsed)}
         </div>
         """,
         unsafe_allow_html=True
     )
 
-    st.write("")
-    st.write("")
+    st.markdown("<div class='button-wrapper'>", unsafe_allow_html=True)
 
-    col1, col2 = st.columns(2)
+    if st.session_state.running:
+        button_text = "Stop"
+    else:
+        button_text = "Start"
 
-    with col1:
-        if st.button("Start", use_container_width=True):
-
-            st.session_state.running = True
-            st.session_state.start_time = (
-                time.time() - st.session_state.elapsed
-            )
-
-            st.rerun()
-
-    with col2:
-        if st.button("Stop", use_container_width=True):
-
+    if st.button(button_text, use_container_width=True):
+        if st.session_state.running:
+            # STOP
+            st.session_state.elapsed = int(time.time() - st.session_state.start_time)
             st.session_state.running = False
-            st.rerun()
+        else:
+            # START / RESUME
+            st.session_state.running = True
+            st.session_state.start_time = time.time() - st.session_state.elapsed
 
-    st.write("")
-    st.write("")
+        st.rerun()
 
-    pages = st.number_input(
-        "Pages Read",
-        min_value=1,
-        step=1
-    )
+    st.markdown("</div>", unsafe_allow_html=True)
 
-    # muncul setelah stop
+    # Input pages dan Save Reading baru muncul setelah timer pernah jalan dan lagi stop
     if not st.session_state.running and st.session_state.elapsed > 0:
 
         st.write("")
+        st.write("")
+
+        pages = st.number_input(
+            "Pages Read",
+            min_value=1,
+            step=1
+        )
 
         if st.button("Save Reading", use_container_width=True):
-
-            total_minutes = st.session_state.elapsed / 60
-
-            if total_minutes > 0:
-                pace = pages / total_minutes
-            else:
-                pace = 0
+            pace_seconds = st.session_state.elapsed / pages
 
             st.session_state.saved_pages = pages
-            st.session_state.saved_pace = pace
+            st.session_state.saved_pace_seconds = pace_seconds
             st.session_state.show_summary = True
 
             st.rerun()
@@ -195,11 +224,8 @@ else:
 
     elapsed = st.session_state.elapsed
 
-    minutes = elapsed // 60
-    seconds = elapsed % 60
-
     st.markdown(
-        "<div class='summary-title'>Distance</div>",
+        "<div class='summary-label'>Distance</div>",
         unsafe_allow_html=True
     )
 
@@ -209,35 +235,33 @@ else:
     )
 
     st.markdown(
-        "<div class='summary-title'>Pace</div>",
+        "<div class='summary-label'>Pace</div>",
         unsafe_allow_html=True
     )
 
     st.markdown(
-        f"<div class='summary-value'>{st.session_state.saved_pace:.1f} / pages</div>",
+        f"<div class='summary-value'>{format_pace(st.session_state.saved_pace_seconds)}</div>",
         unsafe_allow_html=True
     )
 
     st.markdown(
-        "<div class='summary-title'>Time</div>",
+        "<div class='summary-label'>Time</div>",
         unsafe_allow_html=True
     )
 
     st.markdown(
-        f"<div class='summary-value'>{minutes} s</div>",
+        f"<div class='summary-value'>{format_time_summary(elapsed)}</div>",
         unsafe_allow_html=True
     )
 
-    st.markdown(
-        "<div class='book'>📖</div>",
-        unsafe_allow_html=True
-    )
+    st.markdown("<div class='book'>📖</div>", unsafe_allow_html=True)
 
     if st.button("Start New Reading", use_container_width=True):
-
         st.session_state.running = False
         st.session_state.start_time = None
         st.session_state.elapsed = 0
         st.session_state.show_summary = False
+        st.session_state.saved_pages = 0
+        st.session_state.saved_pace_seconds = 0
 
         st.rerun()
