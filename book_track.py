@@ -1,13 +1,13 @@
-
 import streamlit as st
 import time
 
 st.set_page_config(
-    page_title="Reading Tracker",
+    page_title="Let's Read",
     page_icon="📚",
     layout="centered"
 )
 
+# ---------------- SESSION STATE ----------------
 if "running" not in st.session_state:
     st.session_state.running = False
 
@@ -17,111 +17,227 @@ if "start_time" not in st.session_state:
 if "elapsed" not in st.session_state:
     st.session_state.elapsed = 0
 
+if "show_summary" not in st.session_state:
+    st.session_state.show_summary = False
 
+if "saved_pages" not in st.session_state:
+    st.session_state.saved_pages = 0
+
+if "saved_pace" not in st.session_state:
+    st.session_state.saved_pace = 0
+
+
+# ---------------- STYLING ----------------
 st.markdown("""
 <style>
-.main {
-    background-color: #0f1117;
+
+.stApp{
+    background-color:#626BC5;
 }
 
-.block-container {
-    padding-top: 2rem;
+html, body, [class*="css"]{
+    font-family: 'Arial';
+    color:#F7EEDF;
 }
 
-.timer-card {
-    background: #1b1f2a;
-    padding: 30px;
-    border-radius: 24px;
-    text-align: center;
-    margin-bottom: 20px;
-    border: 1px solid #2d3345;
+.block-container{
+    padding-top:2rem;
 }
 
-.result-card {
-    background: #1b1f2a;
-    padding: 25px;
-    border-radius: 20px;
-    border: 1px solid #2d3345;
+.title{
+    text-align:center;
+    font-size:58px;
+    font-weight:700;
+    color:#F7EEDF;
+    margin-bottom:40px;
 }
 
-.big-timer {
-    font-size: 52px;
-    font-weight: bold;
-    color: white;
+.timer-circle{
+    width:320px;
+    height:320px;
+    border:5px solid #F7EEDF;
+    border-radius:50%;
+    margin:auto;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    font-size:72px;
+    font-weight:700;
+    color:#F7EEDF;
 }
 
-.subtitle {
-    color: #9ca3af;
-    text-align: center;
-    margin-bottom: 30px;
+.summary-title{
+    text-align:center;
+    font-size:32px;
+    margin-top:30px;
+    color:#F7EEDF;
 }
+
+.summary-value{
+    text-align:center;
+    font-size:72px;
+    font-weight:700;
+    margin-bottom:30px;
+    color:#F7EEDF;
+}
+
+.book{
+    text-align:center;
+    font-size:180px;
+}
+
+div.stButton > button{
+    border-radius:999px;
+    height:55px;
+    font-size:22px;
+    font-weight:700;
+    border:none;
+    background:linear-gradient(90deg,#B9BCE8,#F1F1F1);
+    color:#27348B;
+}
+
+div.stButton > button:hover{
+    background:linear-gradient(90deg,#D7D9F6,#FFFFFF);
+    color:#27348B;
+}
+
+.stNumberInput label{
+    color:#F7EEDF !important;
+    font-size:20px !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown(
-    "<h1 style='text-align:center;'>📚 Reading Tracker</h1>",
-    unsafe_allow_html=True
-)
 
-st.markdown(
-    "<p class='subtitle'>Track your reading session beautifully ✨</p>",
-    unsafe_allow_html=True
-)
+# ---------------- TIMER PAGE ----------------
+if not st.session_state.show_summary:
 
-with st.container():
-    st.markdown("<div class='timer-card'>", unsafe_allow_html=True)
+    st.markdown(
+        "<div class='title'>Let's read</div>",
+        unsafe_allow_html=True
+    )
 
     elapsed = st.session_state.elapsed
 
     if st.session_state.running:
         elapsed = int(time.time() - st.session_state.start_time)
         st.session_state.elapsed = elapsed
+        st.rerun()
 
-    hours = elapsed // 3600
-    minutes = (elapsed % 3600) // 60
+    minutes = elapsed // 60
     seconds = elapsed % 60
 
     st.markdown(
-        f"<div class='big-timer'>{hours:02}:{minutes:02}:{seconds:02}</div>",
+        f"""
+        <div class="timer-circle">
+            {minutes:02}:{seconds:02}
+        </div>
+        """,
         unsafe_allow_html=True
     )
+
+    st.write("")
+    st.write("")
 
     col1, col2 = st.columns(2)
 
     with col1:
-        if st.button("▶ Start", use_container_width=True):
+        if st.button("Start", use_container_width=True):
+
             st.session_state.running = True
-            st.session_state.start_time = time.time() - st.session_state.elapsed
+            st.session_state.start_time = (
+                time.time() - st.session_state.elapsed
+            )
+
+            st.rerun()
 
     with col2:
-        if st.button("⏹ Stop", use_container_width=True):
+        if st.button("Stop", use_container_width=True):
+
             st.session_state.running = False
+            st.rerun()
 
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.write("")
+    st.write("")
 
-pages = st.number_input(
-    "📖 Total Pages Read",
-    min_value=1,
-    step=1
-)
+    pages = st.number_input(
+        "Pages Read",
+        min_value=1,
+        step=1
+    )
 
-if st.button("Calculate Reading Stats", use_container_width=True):
+    # muncul setelah stop
+    if not st.session_state.running and st.session_state.elapsed > 0:
 
-    total_minutes = st.session_state.elapsed / 60
+        st.write("")
 
-    if total_minutes > 0:
-        avg_speed = pages / total_minutes
-    else:
-        avg_speed = 0
+        if st.button("Save Reading", use_container_width=True):
 
-    st.markdown("<div class='result-card'>", unsafe_allow_html=True)
+            total_minutes = st.session_state.elapsed / 60
 
-    st.markdown("## ✨ Reading Summary")
+            if total_minutes > 0:
+                pace = pages / total_minutes
+            else:
+                pace = 0
 
-    st.write(f"⏱ **Reading Time:** {hours:02}:{minutes:02}:{seconds:02}")
-    st.write(f"📚 **Pages Read:** {pages} pages")
-    st.write(f"⚡ **Average Speed:** {avg_speed:.2f} pages/minute")
+            st.session_state.saved_pages = pages
+            st.session_state.saved_pace = pace
+            st.session_state.show_summary = True
 
-    st.markdown("</div>", unsafe_allow_html=True)
+            st.rerun()
 
-st.caption("Made with Streamlit 💖")
+
+# ---------------- SUMMARY PAGE ----------------
+else:
+
+    elapsed = st.session_state.elapsed
+
+    minutes = elapsed // 60
+    seconds = elapsed % 60
+
+    st.markdown(
+        "<div class='summary-title'>Distance</div>",
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        f"<div class='summary-value'>{st.session_state.saved_pages} pages</div>",
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        "<div class='summary-title'>Pace</div>",
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        f"<div class='summary-value'>{st.session_state.saved_pace:.1f} / pages</div>",
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        "<div class='summary-title'>Time</div>",
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        f"<div class='summary-value'>{minutes} s</div>",
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        "<div class='book'>📖</div>",
+        unsafe_allow_html=True
+    )
+
+    if st.button("Start New Reading", use_container_width=True):
+
+        st.session_state.running = False
+        st.session_state.start_time = None
+        st.session_state.elapsed = 0
+        st.session_state.show_summary = False
+
+        st.rerun()
