@@ -1,6 +1,5 @@
 import streamlit as st
 import time
-from streamlit_autorefresh import st_autorefresh
 
 st.set_page_config(
     page_title="Let's Read",
@@ -28,22 +27,15 @@ if "saved_pace_seconds" not in st.session_state:
     st.session_state.saved_pace_seconds = 0
 
 
-# ---------------- AUTO REFRESH ----------------
-# Ini yang bikin timer kelihatan jalan setiap 1 detik
-if st.session_state.running:
-    st_autorefresh(interval=1000, key="timer_refresh")
-
-
-# ---------------- STYLING ----------------
+# ---------------- STYLE ----------------
 st.markdown("""
 <style>
-
 .stApp {
     background-color: #626BC5;
 }
 
 .block-container {
-    padding-top: 1.2rem;
+    padding-top: 1rem;
     max-width: 900px;
 }
 
@@ -54,7 +46,7 @@ html, body, [class*="css"] {
 
 .title {
     text-align: center;
-    font-size: 58px;
+    font-size: 64px;
     font-weight: 800;
     color: #F7EEDF;
     margin-bottom: 55px;
@@ -71,18 +63,18 @@ html, body, [class*="css"] {
     justify-content: center;
     align-items: center;
 
-    font-size: 72px;
+    font-size: 74px;
     font-weight: 800;
     color: #F7EEDF;
 }
 
-.button-wrapper {
+.button-space {
     margin-top: 55px;
 }
 
 div.stButton > button {
     border-radius: 999px;
-    height: 58px;
+    height: 60px;
     font-size: 22px;
     font-weight: 700;
     border: none;
@@ -101,32 +93,27 @@ div.stButton > button:hover {
     font-weight: 700 !important;
 }
 
-div[data-baseweb="input"] {
-    border-radius: 999px;
-}
-
 .summary-label {
     text-align: center;
     font-size: 30px;
     color: #F7EEDF;
     font-weight: 500;
-    margin-top: 18px;
+    margin-top: 20px;
 }
 
 .summary-value {
     text-align: center;
-    font-size: 72px;
+    font-size: 68px;
     color: #F7EEDF;
     font-weight: 800;
-    margin-bottom: 24px;
+    margin-bottom: 25px;
 }
 
 .book {
     text-align: center;
-    font-size: 170px;
+    font-size: 160px;
     margin-top: 10px;
 }
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -176,8 +163,9 @@ if not st.session_state.show_summary:
         unsafe_allow_html=True
     )
 
-    st.markdown("<div class='button-wrapper'>", unsafe_allow_html=True)
+    st.markdown("<div class='button-space'></div>", unsafe_allow_html=True)
 
+    # SATU TOMBOL: START / STOP
     if st.session_state.running:
         button_text = "Stop"
     else:
@@ -195,9 +183,7 @@ if not st.session_state.show_summary:
 
         st.rerun()
 
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    # Input pages dan Save Reading baru muncul setelah timer pernah jalan dan lagi stop
+    # muncul setelah stop
     if not st.session_state.running and st.session_state.elapsed > 0:
 
         st.write("")
@@ -217,6 +203,11 @@ if not st.session_state.show_summary:
             st.session_state.show_summary = True
 
             st.rerun()
+
+    # Auto-refresh sederhana tanpa package tambahan
+    if st.session_state.running:
+        time.sleep(1)
+        st.rerun()
 
 
 # ---------------- SUMMARY PAGE ----------------
